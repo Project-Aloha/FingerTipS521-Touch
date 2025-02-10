@@ -48,9 +48,13 @@
 /*Error Event*/
 #define EVT_ID_ERROR                          0xF3
 
+/*ESD error*/
+#define EVT_TYPE_ERROR_ESD					  0xF0
+/*Watchdog timer expired*/
+#define EVT_TYPE_ERROR_WATCHDOG				  0x06	
+
 /*OP Code to set scan mode*/
 #define FTS_CMD_SCAN_MODE                     0xA0
-
 /*Select the Active scanning mode*/
 #define SCAN_MODE_ACTIVE                      0x00
 /*Select the low power scanning mode*/

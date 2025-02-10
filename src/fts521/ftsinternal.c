@@ -130,51 +130,64 @@ Return Value:
 
     if (!NT_SUCCESS(status))
     {
-      Trace(
-          TRACE_LEVEL_ERROR,
-          TRACE_INTERRUPT,
-          "Error reading finger status data - 0x%08lX",
-          status);
+        Trace(
+             TRACE_LEVEL_ERROR,
+             TRACE_INTERRUPT,
+             "Error reading finger status data - 0x%08lX",
+             status);
 
-      goto exit;
+        goto exit;
     }
 
     remain = eventbuf[7];
     if (remain > 0)
     {
-      FtsWriteReadU8UX(SpbContext, FTS521_READ_EVENTS, &eventbuf[8], 3, 10);
+        FtsWriteReadU8UX(SpbContext, FTS521_READ_EVENTS, &eventbuf[8], 3, 10);
     }
 
     for (int i = 0; i < remain+1 ; i++)
     {
-      base = i * 8;
-      touchType = eventbuf[base + 1] & 0x0F;
-      touchId = (eventbuf[base + 1] & 0xF0) >> 4;
+        base = i * 8;
 
-      x = ((eventbuf[base + 3] & 0x0F) << 8) | (eventbuf[base + 2]);
-      y = (eventbuf[base + 4] << 4) | ((eventbuf[base + 3] & 0xF0) >> 4);
+        touchType = eventbuf[base + 1] & 0x0F;
+        touchId = (eventbuf[base + 1] & 0xF0) >> 4;
 
-      if (eventbuf[i * 8 + 0] == EVT_ID_NOEVENT)
-      {
-          break;
-      }
+        x = ((eventbuf[base + 3] & 0x0F) << 8) | (eventbuf[base + 2]);
+        y = (eventbuf[base + 4] << 4) | ((eventbuf[base + 3] & 0xF0) >> 4);
 
-      switch (eventbuf[i * 8 + 0])
-      {
+        /* event[0] */
+        switch (eventbuf[base + 0])
+        {
+            case EVT_ID_NOEVENT:
+                /*
+                * If there is no event, then do not input its xy coordinates.
+                */
+                break;
             case EVT_ID_ENTER_POINT:
             case EVT_ID_MOTION_POINT:
-              Data->States[touchId] = OBJECT_STATE_FINGER_PRESENT_WITH_ACCURATE_POS;
-               break;
+                Data->States[touchId] = OBJECT_STATE_FINGER_PRESENT_WITH_ACCURATE_POS;
+                break;
             case EVT_ID_LEAVE_POINT:
                 Data->States[touchId] = OBJECT_STATE_NOT_PRESENT;
                 break;
-      }
+        }
         
-      Data->Positions[touchId].X = x;
-      Data->Positions[touchId].Y = y;
+        Data->Positions[touchId].X = x;
+        Data->Positions[touchId].Y = y;
+
+        /* event[1]
+        *  TODO: Need to complete the handling methods for the 
+        *        following errors in the future.
+        */
+        switch (eventbuf[i * 8 + 1])
+        {
+            case EVT_TYPE_ERROR_ESD:
+            case EVT_TYPE_ERROR_WATCHDOG:
+                break;
+        }
     }
 exit:
-      return status;
+    return status;
 
 }
 
