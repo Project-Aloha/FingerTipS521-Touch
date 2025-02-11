@@ -89,9 +89,9 @@ Fts521ConfigureFunctions(
 
 NTSTATUS
 Fts521GetObjectStatusFromController(
-    IN VOID* ControllerContext,
-    IN SPB_CONTEXT* SpbContext,
-    IN DETECTED_OBJECTS* Data
+      IN VOID* ControllerContext,
+      IN SPB_CONTEXT* SpbContext,
+      IN DETECTED_OBJECTS* Data
 )
 /*++
 
@@ -113,82 +113,81 @@ Return Value:
 
 --*/
 {
-    NTSTATUS              status;
-    BYTE                  touchType;
-    BYTE                  touchId;
-    int                   remain = 0;
-    int                   x = 0;
-    int                   y = 0;
-    int                   base = 0;
+      NTSTATUS              status;
+      BYTE                  touchType;
+      BYTE                  touchId;
+      int                   remain = 0;
+      int                   x = 0;
+      int                   y = 0;
+      int                   base = 0;
 
-    FTS521_CONTROLLER_CONTEXT* controller;
+      FTS521_CONTROLLER_CONTEXT* controller;
 
-    PFOCAL_TECH_EVENT_DATA controllerData = NULL;
-    controller = (FTS521_CONTROLLER_CONTEXT*)ControllerContext;
+      PFOCAL_TECH_EVENT_DATA controllerData = NULL;
+      controller = (FTS521_CONTROLLER_CONTEXT*)ControllerContext;
 
-    status = FtsWriteReadU8UX(SpbContext, FTS521_READ_EVENTS, &eventbuf[0], 3, 8);
+      status = FtsWriteReadU8UX(SpbContext, FTS521_READ_EVENTS, &eventbuf[0], 3, 8);
 
-    if (!NT_SUCCESS(status))
-    {
-        Trace(
-             TRACE_LEVEL_ERROR,
-             TRACE_INTERRUPT,
-             "Error reading finger status data - 0x%08lX",
-             status);
+      if (!NT_SUCCESS(status))
+      {
+            Trace(
+                  TRACE_LEVEL_ERROR,
+                  TRACE_INTERRUPT,
+                  "Error reading finger status data - 0x%08lX",
+                  status);
 
-        goto exit;
-    }
+            goto exit;
+      }
 
-    remain = eventbuf[7];
-    if (remain > 0)
-    {
-        FtsWriteReadU8UX(SpbContext, FTS521_READ_EVENTS, &eventbuf[8], 3, 10);
-    }
+      remain = eventbuf[7];
+      if (remain > 0)
+      {
+            FtsWriteReadU8UX(SpbContext, FTS521_READ_EVENTS, &eventbuf[8], 3, 10);
+      }
 
-    for (int i = 0; i < remain+1 ; i++)
-    {
-        base = i * 8;
+      for (int i = 0; i < remain+1 ; i++)
+      {
+            base = i * 8;
 
-        touchType = eventbuf[base + 1] & 0x0F;
-        touchId = (eventbuf[base + 1] & 0xF0) >> 4;
+            touchType = eventbuf[base + 1] & 0x0F;
+            touchId = (eventbuf[base + 1] & 0xF0) >> 4;
 
-        x = ((eventbuf[base + 3] & 0x0F) << 8) | (eventbuf[base + 2]);
-        y = (eventbuf[base + 4] << 4) | ((eventbuf[base + 3] & 0xF0) >> 4);
+            x = ((eventbuf[base + 3] & 0x0F) << 8) | (eventbuf[base + 2]);
+            y = (eventbuf[base + 4] << 4) | ((eventbuf[base + 3] & 0xF0) >> 4);
 
-        /* event[0] */
-        switch (eventbuf[base + 0])
-        {
-            case EVT_ID_NOEVENT:
-                /*
-                * If there is no event, then do not input its xy coordinates.
-                */
-                break;
-            case EVT_ID_ENTER_POINT:
-            case EVT_ID_MOTION_POINT:
-                Data->States[touchId] = OBJECT_STATE_FINGER_PRESENT_WITH_ACCURATE_POS;
-                break;
-            case EVT_ID_LEAVE_POINT:
-                Data->States[touchId] = OBJECT_STATE_NOT_PRESENT;
-                break;
-        }
+            /* event[0] */
+            switch (eventbuf[base + 0])
+            {
+                  case EVT_ID_NOEVENT:
+                  /*
+                  * If there is no event, then do not input its xy coordinates.
+                  */
+                        break;
+                  case EVT_ID_ENTER_POINT:
+                  case EVT_ID_MOTION_POINT:
+                        Data->States[touchId] = OBJECT_STATE_FINGER_PRESENT_WITH_ACCURATE_POS;
+                        break;
+                  case EVT_ID_LEAVE_POINT:
+                        Data->States[touchId] = OBJECT_STATE_NOT_PRESENT;
+                        break;
+            }
         
-        Data->Positions[touchId].X = x;
-        Data->Positions[touchId].Y = y;
+            Data->Positions[touchId].X = x;
+            Data->Positions[touchId].Y = y;
 
-        /* event[1]
-        *  TODO: Need to complete the handling methods for the 
-        *        following errors in the future.
-        */
-        switch (eventbuf[i * 8 + 1])
-        {
-            case EVT_TYPE_ERROR_ESD:
-            case EVT_TYPE_ERROR_WATCHDOG:
-                break;
-        }
-    }
+            /* event[1]
+            *  TODO: Need to complete the handling methods for the 
+            *        following errors in the future.
+            */
+            switch (eventbuf[i * 8 + 1])
+            {
+                  case EVT_TYPE_ERROR_ESD:
+                  case EVT_TYPE_ERROR_WATCHDOG:
+                        break;
+            }
+      }
 exit:
-    return status;
-
+      return status;
 }
 
 NTSTATUS
